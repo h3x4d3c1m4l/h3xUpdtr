@@ -1,0 +1,11 @@
+[package]
+name = "h3xUpdtr"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+fltk = "1.5.9"
+ratatui = "0.29.0"
+ruzstd = "0.8.1"
+serde = "1.0.219"
+serde_yml = "0.0.12"
