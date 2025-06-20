@@ -19,4 +19,9 @@ Update files should be packed by something like zstandard, which has good comp/d
 - [ ] Actually do stuff at all
 - [ ] GUI ([fltk](https://crates.io/crates/fltk))
 - [ ] TUI ([Ratatui](https://crates.io/crates/ratatui))
-- [ ] CLI (TBD)
+- [ ] CLI ([indicatif](https://crates.io/crates/indicatif))
+
+## Limitations
+
+- Doesn't create empty folders
+- Symlinks are ignored by `create` and overwritten by `update`
