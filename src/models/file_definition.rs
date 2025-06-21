@@ -8,10 +8,13 @@ pub struct FileDefinition {
     pub r_path: String,
 
     /// File size of the uncompressed file.
-    pub u_size: u64,
+    pub u_size: u32,
 
     /// SHA256 hash of the uncompresed file.
     pub u_sha256: String,
+
+    /// File size of the compressed file.
+    pub c_size: u32,
 
     /// SHA256 hash of the compressed file.
     pub c_sha256: String,
