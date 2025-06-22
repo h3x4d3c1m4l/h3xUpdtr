@@ -1,5 +1,6 @@
 mod models;
 mod commands;
+mod file_storage;
 
 use clap::{arg, Command};
 
