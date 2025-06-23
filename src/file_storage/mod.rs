@@ -5,7 +5,7 @@ use snafu::Snafu;
 pub mod s3;
 
 pub trait FileStore {
-    async fn create_file<T: Read>(self, relative_path: String, data_stream: T) -> FileStoreResult<(), FileStoreError>;
+    async fn upload_file<T: Read>(&self, relative_path: String, data_stream: T) -> FileStoreResult<(), FileStoreError>;
 }
 
 // ////// //
@@ -13,7 +13,7 @@ pub trait FileStore {
 // ////// //
 
 #[derive(Debug, Snafu)]
-enum FileStoreError {
+pub enum FileStoreError {
     #[snafu(display("Unable to store the file"))]
     CreateFileError,
 }

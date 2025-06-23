@@ -20,7 +20,8 @@ fn cli() -> Command {
         )
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // Load `.env` to system env vars.
     let _ = Envie::load().and_then(|env| env.export_to_system_env());
 
@@ -28,7 +29,7 @@ fn main() {
 
     match matches.subcommand() {
         Some(("create", sub_matches)) => {
-            commands::create::run_create(sub_matches.get_one::<String>("INPUT_DIR"), sub_matches.get_one::<String>("OUTPUT_PATH"));
+            commands::create::run_create(sub_matches.get_one::<String>("INPUT_DIR")).await;
         },
         _ => unreachable!(),
     }
