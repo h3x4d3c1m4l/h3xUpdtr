@@ -3,6 +3,7 @@ mod commands;
 mod file_storage;
 
 use clap::{arg, Command};
+use envie::Envie;
 
 fn cli() -> Command {
     Command::new("h3xup")
@@ -20,6 +21,9 @@ fn cli() -> Command {
 }
 
 fn main() {
+    // Load `.env` to system env vars.
+    let _ = Envie::load().and_then(|env| env.export_to_system_env());
+
     let matches = cli().get_matches();
 
     match matches.subcommand() {

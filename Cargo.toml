@@ -19,3 +19,4 @@ tokio = { version = "1.45.1", features = ["full"] }
 bytes = "1.10.1"
 object_store = { version = "0.12.2", features = ["aws"] }
 snafu = "0.8.6"
+envie = "0.2.1"
