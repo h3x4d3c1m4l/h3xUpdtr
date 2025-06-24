@@ -64,7 +64,7 @@ pub async fn run_create(version_name: &str, input_dir: &str, upload_base_path: &
         });
 
         let remote_path = Path::new(upload_base_path).join("files").join(uncompressed_sha256);
-        storage_client.upload_file(remote_path.to_str().unwrap(), compressed.as_slice()).await.unwrap();
+        storage_client.upload_file(remote_path.as_path(), compressed.as_slice()).await.unwrap();
 
         bar.inc(1);
     }
@@ -73,5 +73,5 @@ pub async fn run_create(version_name: &str, input_dir: &str, upload_base_path: &
     let yaml_bytes = serde_yml::to_string(&version).unwrap().into_bytes();
     let remote_path = Path::new(upload_base_path).join("versions").join(version_name);
     let mut yaml_cursor = std::io::Cursor::new(yaml_bytes);
-    storage_client.upload_file(remote_path.to_str().unwrap(), &mut yaml_cursor).await.unwrap();
+    storage_client.upload_file(remote_path.as_path(), &mut yaml_cursor).await.unwrap();
 }
