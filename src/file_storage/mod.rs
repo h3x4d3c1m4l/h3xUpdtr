@@ -5,7 +5,7 @@ use snafu::Snafu;
 pub mod s3;
 
 pub trait FileStore {
-    async fn upload_file<T: Read>(&self, relative_path: String, data_stream: T) -> FileStoreResult<(), FileStoreError>;
+    async fn upload_file<T: Read>(&self, relative_path: &str, data_stream: T) -> FileStoreResult<(), FileStoreError>;
 }
 
 // ////// //

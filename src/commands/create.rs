@@ -1,7 +1,7 @@
-use std::{env, fs::File, io::BufReader};
+use std::{fs::File, io::BufReader, path::Path};
 
 use brotli::enc::BrotliEncoderParams;
-use bytes::{Buf, BufMut};
+use bytes::BufMut;
 use console::{style, Emoji};
 use indicatif::ProgressBar;
 use walkdir::{DirEntry, WalkDir};
@@ -14,15 +14,10 @@ use crate::{file_storage::{s3::S3Client, FileStore}, models::{
 static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍  ", "");
 static HOURGLASS: Emoji<'_, '_> = Emoji("⌛  ", "");
 
-pub async fn run_create(input_dir: Option<&String>) {
-    let root_path = match input_dir {
-        Some(input_dir_path) => input_dir_path,
-        None => ".",
-    };
-
+pub async fn run_create(version_name: &str, input_dir: &str, upload_base_path: &str) {
     println!("{} {}Building file list...", style("[1/2]").bold().dim(), LOOKING_GLASS);
 
-    let file_list: Vec<DirEntry> = WalkDir::new(root_path)
+    let file_list: Vec<DirEntry> = WalkDir::new(input_dir)
         .into_iter()
         .map(|e| e.unwrap())
         .filter(|e| e.file_type().is_file())
@@ -39,9 +34,9 @@ pub async fn run_create(input_dir: Option<&String>) {
 
     let bar = ProgressBar::new(file_list.len() as u64);
     for entry in file_list {
-        let path = entry
+        let rel_file_path = entry
             .path()
-            .strip_prefix(root_path)
+            .strip_prefix(input_dir)
             .unwrap()
             .to_str()
             .unwrap()
@@ -59,19 +54,24 @@ pub async fn run_create(input_dir: Option<&String>) {
 
         let compressed = buf.into_inner();
 
+        let uncompressed_sha256 = sha256::try_digest(entry.path()).unwrap();
         version.files.push(FileDefinition {
-            r_path: path.clone(),
+            r_path: rel_file_path.clone(),
             u_size: entry.metadata().unwrap().len() as u32,
             u_sha256: sha256::try_digest(entry.path()).unwrap(),
             c_size: compressed.len() as u32,
             c_sha256: sha256::digest(&compressed),
         });
 
-        storage_client.upload_file(path, compressed.as_slice()).await.unwrap();
+        let remote_path = Path::new(upload_base_path).join("files").join(uncompressed_sha256);
+        storage_client.upload_file(remote_path.to_str().unwrap(), compressed.as_slice()).await.unwrap();
 
         bar.inc(1);
     }
     bar.finish_and_clear();
 
-    let yaml = serde_yml::to_string(&version).unwrap();
+    let yaml_bytes = serde_yml::to_string(&version).unwrap().into_bytes();
+    let remote_path = Path::new(upload_base_path).join("versions").join(version_name);
+    let mut yaml_cursor = std::io::Cursor::new(yaml_bytes);
+    storage_client.upload_file(remote_path.to_str().unwrap(), &mut yaml_cursor).await.unwrap();
 }

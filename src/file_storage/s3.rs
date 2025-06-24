@@ -16,11 +16,11 @@ impl S3Client {
 }
 
 impl FileStore for S3Client {
-    async fn upload_file<T: std::io::Read>(&self, relative_path: String, data_stream: T) -> Result<(), FileStoreError> {
-        let x = object_store::path::Path::parse(relative_path).unwrap();
+    async fn upload_file<T: std::io::Read>(&self, relative_path: &str, data_stream: T) -> Result<(), FileStoreError> {
+        let path = object_store::path::Path::parse(relative_path).unwrap();
         let bytes: Vec<u8> = data_stream.bytes().collect::<Result<Vec<u8>, std::io::Error>>().unwrap();
         let payload = PutPayload::from(bytes);
-        self.s3_client.put(&x, payload).await.unwrap();
+        self.s3_client.put(&path, payload).await.unwrap();
 
         Ok(())
     }
