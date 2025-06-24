@@ -13,6 +13,9 @@ pub struct FileDefinition {
     /// SHA256 hash of the uncompresed file.
     pub u_sha256: String,
 
+    /// Algorithm used for compressing the data.
+    pub c_algo: String,
+
     /// File size of the compressed file.
     pub c_size: u32,
 

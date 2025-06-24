@@ -1,11 +1,11 @@
-use std::{io::Read, path::Path};
+use std::{collections::HashMap, io::Read, path::Path};
 
 use snafu::Snafu;
 
 pub mod s3;
 
 pub trait FileStore {
-    async fn upload_file<T: Read>(&self, relative_path: &Path, data_stream: T) -> FileStoreResult<(), FileStoreError>;
+    async fn upload_file<T: Read>(&self, relative_path: &Path, data_stream: T, metadata: HashMap<&str, &str>) -> FileStoreResult<(), FileStoreError>;
 }
 
 // ////// //
