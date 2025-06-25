@@ -6,7 +6,7 @@ pub mod s3;
 
 pub trait FileStore {
     async fn upload_file<T: Read>(&self, relative_path: &Path, data_stream: T, metadata: HashMap<&str, &str>) -> FileStoreResult<(), FileStoreError>;
-    async fn get_file_info(self, relative_path: &Path) -> FileStoreResult<Option<RemoteFileInfo>, FileStoreError>;
+    async fn get_file_info(&self, relative_path: &Path) -> FileStoreResult<Option<RemoteFileInfo>, FileStoreError>;
 }
 
 #[derive(Debug)]

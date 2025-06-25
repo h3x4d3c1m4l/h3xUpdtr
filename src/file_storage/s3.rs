@@ -37,7 +37,7 @@ impl FileStore for S3Client {
         Ok(())
     }
 
-    async fn get_file_info(self, relative_path: &Path) -> Result<Option<file_storage::RemoteFileInfo>, FileStoreError> {
+    async fn get_file_info(&self, relative_path: &Path) -> Result<Option<file_storage::RemoteFileInfo>, FileStoreError> {
         let unix_path = relative_path.to_str().unwrap().replace(path::MAIN_SEPARATOR_STR, "/");
         let obj_stor_path = object_store::path::Path::from(unix_path);
 
@@ -63,7 +63,7 @@ impl FileStore for S3Client {
                 }))
             }
             Err(object_store::Error::NotFound { .. }) => Ok(None),
-            Err(e) => panic!("Handle me"),
+            Err(_) => panic!("Handle me"),
         }
     }
 }

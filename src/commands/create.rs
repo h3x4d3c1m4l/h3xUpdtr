@@ -34,6 +34,9 @@ pub async fn run_create(version_name: &str, input_dir: &str, upload_base_path: &
 
     let bar = ProgressBar::new(file_list.len() as u64);
     for entry in file_list {
+        let uncompressed_sha256 = sha256::try_digest(entry.path()).unwrap();
+        let remote_path = Path::new(upload_base_path).join("files").join(uncompressed_sha256.clone());
+
         let rel_file_path = entry
             .path()
             .strip_prefix(input_dir)
@@ -42,35 +45,48 @@ pub async fn run_create(version_name: &str, input_dir: &str, upload_base_path: &
             .unwrap()
             .to_string();
 
-        let file = File::open(entry.path()).unwrap();
-        let mut reader = BufReader::new(file);
+        // Check if file exists already.
+        let existing_file_info = storage_client.get_file_info(&remote_path).await.unwrap();
+        let file = match existing_file_info {
+            Some(file_info) => {
+                FileDefinition {
+                    r_path: rel_file_path.clone(),
+                    u_len: entry.metadata().unwrap().len() as u32,
+                    u_sha256: uncompressed_sha256.clone(),
+                    c_algo: "brotli".to_owned(),
+                    c_len: file_info.c_len,
+                    c_sha256: file_info.metadata.get("c_sha256").unwrap().to_owned(),
+                }
+            },
+            None => {
+                let file = File::open(entry.path()).unwrap();
+                let mut reader = BufReader::new(file);
+                let mut buf: bytes::buf::Writer<Vec<u8>> = Vec::new().writer();
 
-        let mut buf: bytes::buf::Writer<Vec<u8>> = Vec::new().writer();
+                // Compress using Brotli.
+                let mut params = BrotliEncoderParams::default();
+                params.quality = 8;
+                brotli::BrotliCompress(&mut reader, &mut buf, &params).unwrap();
+                let compressed = buf.into_inner();
+                let compressed_sha256 = sha256::digest(&compressed);
 
-        let mut params = BrotliEncoderParams::default();
-        params.quality = 8;
+                storage_client.upload_file(remote_path.as_path(), compressed.as_slice(), HashMap::from([
+                    ("c_algo", "brotli"),
+                    ("c_sha256", &compressed_sha256),
+                ])).await.unwrap();
 
-        brotli::BrotliCompress(&mut reader, &mut buf, &params).unwrap();
+                FileDefinition {
+                    r_path: rel_file_path.clone(),
+                    u_len: entry.metadata().unwrap().len() as u32,
+                    u_sha256: uncompressed_sha256.clone(),
+                    c_algo: "brotli".to_owned(),
+                    c_len: compressed.len() as u32,
+                    c_sha256: compressed_sha256.clone(),
+                }
+            },
+        };
 
-        let compressed = buf.into_inner();
-
-        let uncompressed_sha256 = sha256::try_digest(entry.path()).unwrap();
-        let compressed_sha256 = sha256::digest(&compressed);
-        version.files.push(FileDefinition {
-            r_path: rel_file_path.clone(),
-            u_size: entry.metadata().unwrap().len() as u32,
-            u_sha256: uncompressed_sha256.clone(),
-            c_algo: "brotli".to_owned(),
-            c_size: compressed.len() as u32,
-            c_sha256: compressed_sha256.clone(),
-        });
-
-        let remote_path = Path::new(upload_base_path).join("files").join(uncompressed_sha256.clone());
-        storage_client.upload_file(remote_path.as_path(), compressed.as_slice(), HashMap::from([
-            ("c_algo", "brotli"),
-            ("c_sha256", &compressed_sha256),
-        ])).await.unwrap();
-
+        version.files.push(file);
         bar.inc(1);
     }
     bar.finish_and_clear();
