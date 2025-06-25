@@ -1,5 +1,5 @@
 
-use std::{collections::HashMap, path::{self, Path}};
+use std::{borrow::Cow, collections::HashMap, path::{self, Path}};
 
 use object_store::{aws::{AmazonS3, AmazonS3Builder}, ObjectStore, PutOptions, PutPayload};
 
@@ -27,7 +27,10 @@ impl FileStore for S3Client {
 
         let mut options = PutOptions::default();
         for (key, value) in metadata.iter() {
-            options.tags.push(key, value);
+            options.attributes.insert(
+                object_store::Attribute::Metadata(Cow::Owned((*key).to_string())),
+                object_store::AttributeValue::from((*value).to_string())
+            );
         }
         self.s3_client.put_opts(&obj_stor_path, payload, options).await.unwrap();
 
