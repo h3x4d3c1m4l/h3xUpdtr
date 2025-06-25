@@ -1,9 +1,9 @@
 
 use std::{borrow::Cow, collections::HashMap, path::{self, Path}};
 
-use object_store::{aws::{AmazonS3, AmazonS3Builder}, ObjectStore, PutOptions, PutPayload};
+use object_store::{aws::{AmazonS3, AmazonS3Builder}, GetOptions, ObjectStore, PutOptions, PutPayload};
 
-use crate::file_storage::{FileStore, FileStoreError};
+use crate::file_storage::{self, FileStore, FileStoreError};
 
 pub struct S3Client {
     s3_client: AmazonS3,
@@ -35,5 +35,35 @@ impl FileStore for S3Client {
         self.s3_client.put_opts(&obj_stor_path, payload, options).await.unwrap();
 
         Ok(())
+    }
+
+    async fn get_file_info(self, relative_path: &Path) -> Result<Option<file_storage::RemoteFileInfo>, FileStoreError> {
+        let unix_path = relative_path.to_str().unwrap().replace(path::MAIN_SEPARATOR_STR, "/");
+        let obj_stor_path = object_store::path::Path::from(unix_path);
+
+        let mut options = GetOptions::default();
+        options.head = true;
+        let result = self.s3_client.get_opts(&obj_stor_path, options).await;
+
+        match result {
+            Ok(info) => {
+                Ok(Some(file_storage::RemoteFileInfo {
+                    c_len: info.meta.size as u32,
+                    metadata: info
+                        .attributes
+                        .iter()
+                        .filter_map(|(k, v)| {
+                            if let object_store::Attribute::Metadata(key) = k {
+                                Some((key.to_string(), v.to_string()))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<HashMap<String, String>>(),
+                }))
+            }
+            Err(object_store::Error::NotFound { .. }) => Ok(None),
+            Err(e) => panic!("Handle me"),
+        }
     }
 }
