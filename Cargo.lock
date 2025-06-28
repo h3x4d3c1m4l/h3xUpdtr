@@ -530,6 +530,7 @@ dependencies = [
  "clap",
  "console",
  "envie",
+ "futures",
  "indicatif",
  "object_store",
  "serde",

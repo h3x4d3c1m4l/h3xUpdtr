@@ -15,6 +15,8 @@ impl S3Client {
 
         S3Client { s3_client: store }
     }
+
+
 }
 
 impl FileStore for S3Client {
@@ -60,6 +62,36 @@ impl FileStore for S3Client {
                             }
                         })
                         .collect::<HashMap<String, String>>(),
+                }))
+            }
+            Err(object_store::Error::NotFound { .. }) => Ok(None),
+            Err(_) => panic!("Handle me"),
+        }
+    }
+
+    async fn get_file(&self, relative_path: &Path) -> Result<Option<file_storage::RemoteFile>, FileStoreError> {
+        let unix_path = relative_path.to_str().unwrap().replace(path::MAIN_SEPARATOR_STR, "/");
+        let obj_stor_path = object_store::path::Path::from(unix_path);
+
+        let options = GetOptions::default();
+        let result = self.s3_client.get_opts(&obj_stor_path, options).await;
+
+        match result {
+            Ok(info) => {
+                Ok(Some(file_storage::RemoteFile {
+                    c_len: info.meta.size as u32,
+                    metadata: info
+                        .attributes
+                        .iter()
+                        .filter_map(|(k, v)| {
+                            if let object_store::Attribute::Metadata(key) = k {
+                                Some((key.to_string(), v.to_string()))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<HashMap<String, String>>(),
+                    stream: Box::pin(futures::StreamExt::map(info.into_stream(), |res| res.unwrap())),
                 }))
             }
             Err(object_store::Error::NotFound { .. }) => Ok(None),
