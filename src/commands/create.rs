@@ -11,10 +11,10 @@ use crate::{file_storage::{s3::S3Client, FileStore}, models::{
     version_definition::VersionDefinition,
 }};
 
-static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍  ", "");
-static HOURGLASS: Emoji<'_, '_> = Emoji("⌛  ", "");
+static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍 ", "");
+static HOURGLASS: Emoji<'_, '_> = Emoji("⌛ ", "");
 
-pub async fn run_create(version_name: &str, input_dir: &str, upload_base_path: &str) {
+pub async fn run_create(version_name: &str, input_dir: &str, storage_base_path: &str) {
     println!("{} {}Building file list...", style("[1/2]").bold().dim(), LOOKING_GLASS);
 
     let file_list: Vec<DirEntry> = WalkDir::new(input_dir)
@@ -35,7 +35,7 @@ pub async fn run_create(version_name: &str, input_dir: &str, upload_base_path: &
     let bar = ProgressBar::new(file_list.len() as u64);
     for entry in file_list {
         let uncompressed_sha256 = sha256::try_digest(entry.path()).unwrap();
-        let remote_path = Path::new(upload_base_path).join("files").join(uncompressed_sha256.clone());
+        let remote_path = Path::new(storage_base_path).join("files").join(uncompressed_sha256.clone());
 
         let rel_file_path = entry
             .path()
@@ -47,6 +47,7 @@ pub async fn run_create(version_name: &str, input_dir: &str, upload_base_path: &
 
         // Check if file exists already.
         let existing_file_info = storage_client.get_file_info(&remote_path).await.unwrap();
+
         let file = match existing_file_info {
             Some(file_info) => {
                 FileDefinition {
@@ -89,10 +90,11 @@ pub async fn run_create(version_name: &str, input_dir: &str, upload_base_path: &
         version.files.push(file);
         bar.inc(1);
     }
+
     bar.finish_and_clear();
 
     let yaml_bytes = serde_yml::to_string(&version).unwrap().into_bytes();
-    let remote_path = Path::new(upload_base_path).join("versions").join(version_name);
+    let remote_path = Path::new(storage_base_path).join("versions").join(version_name);
     let mut yaml_cursor = std::io::Cursor::new(yaml_bytes);
     storage_client.upload_file(remote_path.as_path(), &mut yaml_cursor, HashMap::new()).await.unwrap();
 }

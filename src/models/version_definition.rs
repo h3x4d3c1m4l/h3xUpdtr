@@ -1,8 +1,8 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::models::{definition_version::DefinitionVersion, file_definition::FileDefinition};
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VersionDefinition {
     pub version: DefinitionVersion,
