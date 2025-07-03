@@ -1,6 +1,7 @@
 [package]
 name = "h3xup"
 description = "A file-level updater tool for (primarily) Windows applications."
+repository = "https://github.com/h3x4d3c1m4l/h3xUpdtr"
 license = "MIT"
 version = "0.1.2"
 edition = "2024"
@@ -23,3 +24,8 @@ object_store = { version = "0.12.2", features = ["aws"] }
 snafu = "0.8.6"
 envie = "0.2.1"
 futures = "0.3.31"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }{ archive-suffix }"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "zip"
