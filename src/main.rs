@@ -2,7 +2,7 @@ mod models;
 mod commands;
 mod file_storage;
 
-use clap::{arg, Command};
+use clap::{arg, ArgMatches, Command};
 use envie::Envie;
 
 fn cli() -> Command {
@@ -38,25 +38,37 @@ async fn main() {
     let matches = cli().get_matches();
 
     match matches.subcommand() {
-        Some(("create", sub_matches)) => {
-            let version_name = get_arg_or_env_or_default(sub_matches, "VERSION_NAME", "UPDTR_VERSION_NAME", None).expect("Version name is mandatory");
-            let input_dir = get_arg_or_env_or_default(sub_matches, "INPUT_DIR", "UPDTR_INPUT_DIR", Some(".")).unwrap();
-            let path_prefix = get_arg_or_env_or_default(sub_matches, "FILESTORE_PATH_PREFIX", "UPDTR_FILESTORE_PATH_PREFIX", Some(".")).unwrap();
-
-            commands::create::run_create(&version_name, &input_dir, &path_prefix).await;
-        },
-        Some(("switch", sub_matches)) => {
-            let version_name = get_arg_or_env_or_default(sub_matches, "VERSION_NAME", "UPDTR_VERSION_NAME", None).expect("Version name is mandatory");
-            let output_dir = get_arg_or_env_or_default(sub_matches, "OUTPUT_DIR", "UPDTR_OUTPUT_DIR", Some(".")).unwrap();
-            let path_prefix = get_arg_or_env_or_default(sub_matches, "FILESTORE_PATH_PREFIX", "UPDTR_FILESTORE_PATH_PREFIX", Some(".")).unwrap();
-
-            commands::switch::run_switch(&version_name, &output_dir, &path_prefix).await;
-        },
+        Some(("create", sub_matches)) => try_run_create(sub_matches).await,
+        Some(("switch", sub_matches)) => try_run_switch(sub_matches).await,
         _ => unreachable!(),
     }
 }
 
-fn get_arg_or_env_or_default<'a>(
+// ////////////////// //
+// Subcommand runners //
+// ////////////////// //
+
+async fn try_run_create(sub_matches: &ArgMatches) {
+    let version_name = get_str_arg_or_env_or_default(sub_matches, "VERSION_NAME", "UPDTR_VERSION_NAME", None).expect("Version name is mandatory");
+    let input_dir = get_str_arg_or_env_or_default(sub_matches, "INPUT_DIR", "UPDTR_INPUT_DIR", Some(".")).unwrap();
+    let path_prefix = get_str_arg_or_env_or_default(sub_matches, "FILESTORE_PATH_PREFIX", "UPDTR_FILESTORE_PATH_PREFIX", Some(".")).unwrap();
+
+    commands::create::run_create(&version_name, &input_dir, &path_prefix).await;
+}
+
+async fn try_run_switch(sub_matches: &ArgMatches) {
+    let version_name = get_str_arg_or_env_or_default(sub_matches, "VERSION_NAME", "UPDTR_VERSION_NAME", None).expect("Version name is mandatory");
+    let output_dir = get_str_arg_or_env_or_default(sub_matches, "OUTPUT_DIR", "UPDTR_OUTPUT_DIR", Some(".")).unwrap();
+    let path_prefix = get_str_arg_or_env_or_default(sub_matches, "FILESTORE_PATH_PREFIX", "UPDTR_FILESTORE_PATH_PREFIX", Some(".")).unwrap();
+
+    commands::switch::run_switch(&version_name, &output_dir, &path_prefix).await;
+}
+
+// //////////////////////////// //
+// Argument/Environment helpers //
+// //////////////////////////// //
+
+fn get_str_arg_or_env_or_default<'a>(
     matches: &'a clap::ArgMatches,
     arg_name: &str,
     env_var: &str,
@@ -71,4 +83,28 @@ fn get_arg_or_env_or_default<'a>(
     }
 
     fallback.map(|s| s.to_string())
+}
+
+fn get_bool_arg_or_env_or_default(
+    matches: clap::ArgMatches,
+    arg_name: &str,
+    env_var: &str,
+    fallback: Option<bool>,
+) -> Option<bool> {
+    if let Some(cli_val) = matches.get_one::<bool>(arg_name) {
+        return Some(cli_val.to_owned());
+    }
+
+    if let Ok(env_val) = std::env::var(env_var) {
+        return Some(parse_bool(&env_val));
+    }
+
+    fallback
+}
+
+fn parse_bool(value: &str) -> bool {
+    match value.to_lowercase().as_str() {
+        "y" | "yes" | "true" => true,
+        _ => false
+    }
 }
