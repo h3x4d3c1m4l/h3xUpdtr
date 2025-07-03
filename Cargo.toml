@@ -2,7 +2,7 @@
 name = "h3xup"
 description = "A file-level updater tool for (primarily) Windows applications."
 license = "MIT"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 
 [dependencies]
