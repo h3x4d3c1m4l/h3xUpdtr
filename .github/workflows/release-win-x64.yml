@@ -1,0 +1,84 @@
+name: Release - Windows x64
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ closed ]
+
+# Sets permissions to allow version tag
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/') }}
+
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup D drive for builds and caches
+      run: |
+        Write-Output "DEV_DRIVE=D:" >> $env:GITHUB_ENV
+        Write-Output "CARGO_HOME=D:\.cargo" >> $env:GITHUB_ENV
+        Write-Output "RUSTUP_HOME=D:\.rustup" >> $env:GITHUB_ENV
+        Write-Output "SCCACHE_DIR=D:\.sccache-cache" >> $env:GITHUB_ENV
+
+    - name: Copy Git Repo to Dev Drive
+      run: |
+        Copy-Item -Path "${{ github.workspace }}" -Destination "${{ env.DEV_DRIVE }}/h3xUpdtr" -Recurse
+
+    - name: Install minimal Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        target: x86_64-pc-windows-msvc
+
+    - name: Setup Rust compiled code cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: |
+          ${{ env.DEV_DRIVE }}/h3xUpdtr -> target
+
+    - name: Setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.9
+
+    - name: Build project
+      working-directory: ${{ env.DEV_DRIVE }}/h3xUpdtr
+      run: cargo build --release
+
+    - name: Publish to crates.io
+      working-directory: ${{ env.DEV_DRIVE }}/h3xUpdtr
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      run: cargo publish -p h3xup --allow-dirty --no-default-features
+
+    - name: Archive release
+      uses: thedoctor0/zip-release@0.7.6
+      with:
+        type: zip
+        directory: ${{ env.DEV_DRIVE }}/h3xUpdtr/target/release
+        path: h3xup.exe
+        filename: 'cargo-binstall-x86_64-pc-windows-msvc.zip'
+        custom: -mx9
+
+    - name: Extract release version
+      id: extract_release_version
+      shell: bash
+      run: |
+        release_version=$(echo ${{ github.event.pull_request.head.ref }} | cut -d/ -f2)
+        echo "release_version=$release_version" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub release
+      uses: ncipollo/release-action@v1
+      with:
+        prerelease: true
+        tag: ${{ steps.extract_release_version.outputs.release_version }}
+        artifacts: "${{ env.DEV_DRIVE }}/h3xUpdtr/target/release/cargo-binstall-x86_64-pc-windows-msvc.zip"
