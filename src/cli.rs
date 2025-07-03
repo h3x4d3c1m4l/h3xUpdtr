@@ -1,4 +1,27 @@
+use std::sync::LazyLock;
+
 use clap::{Args, Parser, Subcommand};
+use console::Emoji;
+use indicatif::ProgressStyle;
+
+// ////////////////////// //
+// Output styling helpers //
+// ////////////////////// //
+
+pub static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍 ", "");
+pub static HOURGLASS: Emoji<'_, '_> = Emoji("⌛ ", "");
+pub static CHECKLIST: Emoji<'_, '_> = Emoji("📋 ", "");
+pub static CHECKMARK: Emoji<'_, '_> = Emoji("✅ ", "");
+
+pub static PROGRESS_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
+    ProgressStyle::with_template(
+    "[{elapsed_precise}] {bar:30.cyan/blue} {pos:>4}/{len:4} {wide_msg}",
+    ).unwrap()
+});
+
+// ///////////// //
+// CLI interface //
+// ///////////// //
 
 /// h3xUpdtr - A file-based tool for creating and applying incremental updates.
 #[derive(Parser, Debug)]

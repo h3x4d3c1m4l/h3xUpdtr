@@ -1,30 +1,23 @@
 use std::{fs::{self, File}, io::ErrorKind, path::{Path, PathBuf}};
 
-use console::{style, Emoji};
+use console::style;
 use futures::StreamExt;
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar};
 
-use crate::{file_storage::{s3::S3Client, FileStore}, models::{file_definition::FileDefinition, version_definition::VersionDefinition}};
-
-static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍 ", "");
-static HOURGLASS: Emoji<'_, '_> = Emoji("⌛ ", "");
-static CHECKMARK: Emoji<'_, '_> = Emoji("✅ ", "");
+use crate::{cli, file_storage::{s3::S3Client, FileStore}, models::{file_definition::FileDefinition, version_definition::VersionDefinition}};
 
 pub async fn run_switch(version_name: &str, output_dir: &str, storage_base_path: &str) {
-    println!("{} {}Getting file list...", style("[1/2]").bold().dim(), LOOKING_GLASS);
+    println!("{} {}Getting file list...", style("[1/2]").bold().dim(), cli::LOOKING_GLASS);
 
     let stor_client = S3Client::new_from_env().await;
     let version_def = get_version(&stor_client, storage_base_path, version_name).await;
 
     let multi_progress = MultiProgress::new();
-    let sty = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:30.cyan/blue} {pos:>4}/{len:4} {wide_msg}",
-    ).unwrap();
 
     let pb = multi_progress.add(ProgressBar::new(version_def.files.len() as u64));
-    pb.set_style(sty.clone());
+    pb.set_style(cli::PROGRESS_STYLE.clone());
 
-    println!("{} {}Processing {} files...", style("[2/2]").bold().dim(), HOURGLASS, version_def.files.len());
+    println!("{} {}Processing {} files...", style("[2/2]").bold().dim(), cli::HOURGLASS, version_def.files.len());
     let mut n_unchanged = 0; let mut n_changed = 0; let mut n_missing = 0;
     for file in version_def.files {
         pb.set_message(format!("Verifying {}", file.r_path));
@@ -69,7 +62,7 @@ pub async fn run_switch(version_name: &str, output_dir: &str, storage_base_path:
     }
 
     pb.finish_and_clear();
-    println!("\n{}Successfully finished with {} unchanged, {} changed and {} missing files.", CHECKMARK, n_unchanged, n_changed, n_missing);
+    println!("\n{}Successfully finished with {} unchanged, {} changed and {} missing files.", cli::CHECKMARK, n_unchanged, n_changed, n_missing);
 }
 
 async fn get_version(stor_client: &S3Client, storage_base_path: &str, version_name: &str) -> VersionDefinition {

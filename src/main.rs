@@ -10,6 +10,10 @@ use envie::Envie;
 
 use crate::cli::{Cli, Commands, CreateArgs, SwitchArgs};
 
+// ////////// //
+// Entrypoint //
+// ////////// //
+
 #[tokio::main]
 async fn main() {
     // Load `.env` to system env vars.
