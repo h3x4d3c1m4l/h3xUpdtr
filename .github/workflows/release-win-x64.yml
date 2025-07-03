@@ -66,7 +66,7 @@ jobs:
         type: zip
         directory: ${{ env.DEV_DRIVE }}/h3xUpdtr/target/release
         path: h3xup.exe
-        filename: 'cargo-binstall-x86_64-pc-windows-msvc.zip'
+        filename: 'h3xup-x86_64-pc-windows-msvc.zip'
         custom: -mx9
 
     - name: Extract release version
@@ -80,5 +80,5 @@ jobs:
       uses: ncipollo/release-action@v1
       with:
         prerelease: true
-        tag: ${{ steps.extract_release_version.outputs.release_version }}
-        artifacts: "${{ env.DEV_DRIVE }}/h3xUpdtr/target/release/cargo-binstall-x86_64-pc-windows-msvc.zip"
+        tag: v${{ steps.extract_release_version.outputs.release_version }}
+        artifacts: "${{ env.DEV_DRIVE }}/h3xUpdtr/target/release/h3xup-x86_64-pc-windows-msvc.zip"
