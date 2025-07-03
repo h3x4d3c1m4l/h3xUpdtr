@@ -6,16 +6,16 @@ edition = "2024"
 [dependencies]
 # fltk = "1.5.9"
 # ratatui = "0.29.0"
-clap = "4.5.40"
-console = "0.15.11"
-indicatif = "0.17.11"
+clap = { version = "4.5.40", features = ["derive"] }
+console = "0.16.0"
+indicatif = "0.17.12"
 brotli = "8.0.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_yml = "0.0.12"
 serde_repr = "0.1.20"
 sha256 = "1.6.0"
 walkdir = "2.5.0"
-tokio = { version = "1.45.1", features = ["full"] }
+tokio = { version = "1.46.0", features = ["full"] }
 bytes = "1.10.1"
 object_store = { version = "0.12.2", features = ["aws"] }
 snafu = "0.8.6"
