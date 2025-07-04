@@ -34,7 +34,7 @@ async fn try_run_create(args: CreateArgs) {
     let input_dir = args.input_dir.or_else(|| env::var("UPDTR_INPUT_DIR").ok()).unwrap_or_else(|| ".".to_string());
     let path_prefix = args.filestore_path_prefix.or_else(|| env::var("UPDTR_FILESTORE_PATH_PREFIX").ok()).unwrap_or_else(|| ".".to_string());
 
-    commands::create::run_create(&args.name, &input_dir, &path_prefix).await;
+    commands::create::run_create(&args.names, &input_dir, &path_prefix).await;
 }
 
 async fn try_run_switch(args: SwitchArgs) {

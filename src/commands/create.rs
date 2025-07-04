@@ -11,7 +11,7 @@ use crate::{cli, file_storage::{s3::S3Client, FileStore}, models::{
     version_definition::VersionDefinition,
 }};
 
-pub async fn run_create(version_name: &str, input_dir: &str, storage_base_path: &str) {
+pub async fn run_create(version_names: &Vec<String>, input_dir: &str, storage_base_path: &str) {
     println!("{} {}Building file list...", style("[1/3]").bold().dim(), cli::LOOKING_GLASS);
 
     let file_list: Vec<DirEntry> = WalkDir::new(input_dir)
@@ -102,11 +102,13 @@ pub async fn run_create(version_name: &str, input_dir: &str, storage_base_path: 
 
     pb.finish_and_clear();
 
-    println!("{} {}Uploading version definition...", style("[3/3]").bold().dim(), cli::CHECKLIST);
+    println!("{} {}Uploading version definition(s)...", style("[3/3]").bold().dim(), cli::CHECKLIST);
     let yaml_bytes = serde_yml::to_string(&version).unwrap().into_bytes();
-    let remote_path = Path::new(storage_base_path).join("versions").join(version_name);
-    let mut yaml_cursor = std::io::Cursor::new(yaml_bytes);
-    storage_client.upload_file(remote_path.as_path(), &mut yaml_cursor, HashMap::new()).await.unwrap();
+    for version_name in version_names {
+        let remote_path = Path::new(storage_base_path).join("versions").join(version_name);
+        let mut yaml_cursor = std::io::Cursor::new(&yaml_bytes);
+        storage_client.upload_file(remote_path.as_path(), &mut yaml_cursor, HashMap::new()).await.unwrap();
+    }
 
     println!("\n{}Successfully finished with {} already existing and {} uploaded files.", cli::CHECKMARK, n_already_existing, n_uploaded);
 }

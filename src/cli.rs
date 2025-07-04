@@ -42,8 +42,9 @@ pub enum Commands {
 
 #[derive(Args, Debug)]
 pub struct CreateArgs {
-    /// The name of the version.
-    pub name: String,
+    /// The name(s) of the version (comma separated).
+    #[clap(value_delimiter = ',', num_args = 1..)]
+    pub names: Vec<String>,
 
     /// The path prefix to prepend to all upload destinations.
     #[arg(short('p'), long)]
