@@ -58,7 +58,7 @@ pub struct CreateArgs {
 #[derive(Args, Debug)]
 pub struct SwitchArgs {
     /// The name of the version.
-    pub name: String,
+    pub name: Option<String>,
 
     /// The path prefix to prepend to all download paths.
     #[arg(short('p'), long)]
@@ -67,4 +67,10 @@ pub struct SwitchArgs {
     /// The directory to update.
     #[arg(short, long)]
     pub output_dir: Option<String>,
+
+    /// The endpoint and bucket of the S3 (compatible) storage. Must currently use TLS with valid cert and files must be public.
+    ///
+    /// Example: https://my-example-storage.com/my-bucket
+    #[arg(short, long)]
+    pub s3_url: Option<String>,
 }
