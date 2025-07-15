@@ -38,6 +38,9 @@ pub enum Commands {
 
     /// Switch a folder to a given version.
     Switch(SwitchArgs),
+
+    /// Update to the latest version of the currently used channel.
+    Update(UpdateArgs),
 }
 
 #[derive(Args, Debug)]
@@ -45,6 +48,10 @@ pub struct CreateArgs {
     /// The name(s) of the version (comma separated).
     #[clap(value_delimiter = ',', num_args = 1..)]
     pub names: Vec<String>,
+
+    /// The display name of the version.
+    #[arg(short, long)]
+    pub display_version: Option<String>,
 
     /// The path prefix to prepend to all upload destinations.
     #[arg(short('p'), long)]
@@ -67,4 +74,30 @@ pub struct SwitchArgs {
     /// The directory to update.
     #[arg(short, long)]
     pub output_dir: Option<String>,
+
+    /// The endpoint and bucket of the S3 (compatible) storage. Must currently use TLS with valid cert and files must be public.
+    ///
+    /// Example: https://my-example-storage.com/my-bucket
+    #[arg(short, long)]
+    pub s3_url: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct UpdateArgs {
+    /// The name of the version.
+    pub name: Option<String>,
+
+    /// The path prefix to prepend to all download paths.
+    #[arg(short('p'), long)]
+    pub filestore_path_prefix: Option<String>,
+
+    /// The directory to update.
+    #[arg(short, long)]
+    pub output_dir: Option<String>,
+
+    /// The endpoint and bucket of the S3 (compatible) storage. Must currently use TLS with valid cert and files must be public.
+    ///
+    /// Example: https://my-example-storage.com/my-bucket
+    #[arg(short, long)]
+    pub s3_url: Option<String>,
 }

@@ -1,16 +1,15 @@
-use std::{fs::{self, File}, io::ErrorKind, path::{Path, PathBuf}};
+use std::{fs::{self, File}, io::{Cursor, ErrorKind}, path::{Path, PathBuf}};
 
 use console::style;
 use futures::StreamExt;
 use indicatif::{MultiProgress, ProgressBar};
 
-use crate::{cli, file_storage::{s3::S3Client, FileStore}, models::{file_definition::FileDefinition, version_definition::VersionDefinition}};
+use crate::{cli, file_storage::FileStore, models::version_definition::*};
 
-pub async fn run_switch(version_name: &str, output_dir: &str, storage_base_path: &str) {
+pub async fn run_switch(version_name: &str, output_dir: &str, storage_base_path: &str, storage_client: impl FileStore) {
     println!("{} {}Getting file list...", style("[1/2]").bold().dim(), cli::LOOKING_GLASS);
 
-    let stor_client = S3Client::new_from_env().await;
-    let version_def = get_version(&stor_client, storage_base_path, version_name).await;
+    let version_def = get_version(&storage_client, storage_base_path, version_name).await;
 
     let multi_progress = MultiProgress::new();
 
@@ -35,7 +34,7 @@ pub async fn run_switch(version_name: &str, output_dir: &str, storage_base_path:
             None => {
                 pb.set_message(format!("Restoring missing {}", file.r_path));
                 n_missing = n_missing + 1;
-                download_file(&file, full_path, &stor_client, &storage_base_path).await;
+                download_file(&file, full_path, &storage_client, &storage_base_path).await;
             }
             Some(existing_file) => {
                 // Destination file exists, first check file size (which is cheap to check).
@@ -43,14 +42,14 @@ pub async fn run_switch(version_name: &str, output_dir: &str, storage_base_path:
                     // Size check indicates different file.
                     pb.set_message(format!("Updating {}", file.r_path));
                     n_changed = n_changed + 1;
-                    download_file(&file, full_path, &stor_client, &storage_base_path).await;
+                    download_file(&file, full_path, &storage_client, &storage_base_path).await;
                 } else {
                     let sha256 = sha256::try_digest(&full_path).unwrap();
                     if sha256 != file.u_sha256 {
                         // Contents check indicates different file.
                         pb.set_message(format!("Updating {}", file.r_path));
                         n_changed = n_changed + 1;
-                        download_file(&file, full_path, &stor_client, &storage_base_path).await;
+                        download_file(&file, full_path, &storage_client, &storage_base_path).await;
                     } else {
                         n_unchanged = n_unchanged + 1;
                     }
@@ -65,7 +64,7 @@ pub async fn run_switch(version_name: &str, output_dir: &str, storage_base_path:
     println!("\n{}Successfully finished with {} unchanged, {} changed and {} missing files.", cli::CHECKMARK, n_unchanged, n_changed, n_missing);
 }
 
-async fn get_version(stor_client: &S3Client, storage_base_path: &str, version_name: &str) -> VersionDefinition {
+async fn get_version(stor_client: &impl FileStore, storage_base_path: &str, version_name: &str) -> VersionDefinition {
     let version_storage_path = Path::new(storage_base_path).join("versions").join(version_name);
     let fetched_version_file = stor_client.get_file(version_storage_path.as_path()).await.unwrap().unwrap();
     let fetched_version_file_chunks = fetched_version_file.stream.collect::<Vec<bytes::Bytes>>().await;
@@ -75,10 +74,7 @@ async fn get_version(stor_client: &S3Client, storage_base_path: &str, version_na
     serde_yml::from_str(&version_yaml).unwrap()
 }
 
-async fn download_file(file: &FileDefinition, full_path: PathBuf, storage_client: &S3Client, upload_base_path: &str) {
-    use futures::StreamExt;
-    use std::io::Cursor;
-
+async fn download_file(file: &FileDefinition, full_path: PathBuf, storage_client: &impl FileStore, upload_base_path: &str) {
     let download_path = Path::new(upload_base_path).join("files").join(&file.u_sha256);
 
     let file = storage_client.get_file(download_path.as_path()).await.unwrap().unwrap();
