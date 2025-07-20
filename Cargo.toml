@@ -3,7 +3,7 @@ name = "h3xup"
 description = "A file-level updater tool for (primarily) Windows applications."
 repository = "https://github.com/h3x4d3c1m4l/h3xUpdtr"
 license = "MIT"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 
 [dependencies]
