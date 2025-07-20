@@ -6,12 +6,9 @@ use console::style;
 use indicatif::ProgressBar;
 use walkdir::{DirEntry, WalkDir};
 
-use crate::{cli, file_storage::{s3::S3Client, FileStore}, models::{
-    definition_version::DefinitionVersion, file_definition::FileDefinition,
-    version_definition::VersionDefinition,
-}};
+use crate::{cli, file_storage::FileStore, models::version_definition::*};
 
-pub async fn run_create(version_names: &Vec<String>, input_dir: &str, storage_base_path: &str) {
+pub async fn run_create(display_version: Option<String>, version_names: &Vec<String>, input_dir: &str, storage_base_path: &str, storage_client: impl FileStore) {
     println!("{} {}Building file list...", style("[1/3]").bold().dim(), cli::LOOKING_GLASS);
 
     let file_list: Vec<DirEntry> = WalkDir::new(input_dir)
@@ -22,10 +19,9 @@ pub async fn run_create(version_names: &Vec<String>, input_dir: &str, storage_ba
 
     let mut version = VersionDefinition {
         version: DefinitionVersion::Version1,
+        display_version: display_version,
         files: Vec::new(),
     };
-
-    let storage_client = S3Client::new_from_env().await;
 
     let pb = ProgressBar::new(file_list.len() as u64);
     pb.set_style(cli::PROGRESS_STYLE.clone());

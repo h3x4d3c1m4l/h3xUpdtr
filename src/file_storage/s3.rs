@@ -2,6 +2,7 @@
 use std::{borrow::Cow, collections::HashMap, path::{self, Path}};
 
 use object_store::{aws::{AmazonS3, AmazonS3Builder}, GetOptions, ObjectStore, PutOptions, PutPayload};
+use url::Url;
 
 use crate::file_storage::{self, FileStore, FileStoreError};
 
@@ -10,13 +11,28 @@ pub struct S3Client {
 }
 
 impl S3Client {
-    pub async fn new_from_env() -> S3Client {
+    pub fn new_from_env() -> S3Client {
         let store: AmazonS3 = AmazonS3Builder::from_env().build().unwrap();
 
         S3Client { s3_client: store }
     }
 
+    pub fn new_from_url(url: &str) -> S3Client {
+        let mut parsed_url = Url::parse(url).unwrap();
+        let bucket_opt = parsed_url.path_segments().into_iter().flatten().next().map(|s| s.to_string());
+        let bucket = bucket_opt.as_deref().unwrap();
 
+        parsed_url.set_path("");
+
+        let store: AmazonS3 = AmazonS3Builder::new()
+            .with_endpoint(parsed_url.as_str())
+            .with_bucket_name(bucket)
+            .with_skip_signature(true)
+            .build()
+            .unwrap();
+
+        S3Client { s3_client: store }
+    }
 }
 
 impl FileStore for S3Client {
@@ -95,7 +111,7 @@ impl FileStore for S3Client {
                 }))
             }
             Err(object_store::Error::NotFound { .. }) => Ok(None),
-            Err(_) => panic!("Handle me"),
+            Err(error) => panic!("{}", error),
         }
     }
 }
