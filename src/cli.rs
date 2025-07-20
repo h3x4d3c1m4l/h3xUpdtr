@@ -16,7 +16,7 @@ pub static CHECKMARK: Emoji<'_, '_> = Emoji("✅ ", "");
 pub static PROGRESS_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
     ProgressStyle::with_template(
     "[{elapsed_precise}] {bar:30.cyan/blue} {pos:>4}/{len:4} {wide_msg}",
-    ).unwrap()
+    ).expect("Could not parse progress template, this indicates a bug in this application")
 });
 
 // ///////////// //
